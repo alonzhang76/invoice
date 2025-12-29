@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>普通发票管理系统</title>
+    <title>无锡泰益特钢有限公司-发票管理系统</title>
     <!-- Tailwind CSS v3 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome -->
@@ -100,6 +100,42 @@
             opacity: 1;
             transform: translateY(0);
         }
+        
+        /* 数据管理下拉菜单样式 */
+        #data-management-btn:focus {
+            outline: 2px solid rgba(30, 64, 175, 0.5);
+        }
+        
+        #data-management-dropdown a {
+            transition: background-color 0.2s ease;
+        }
+        
+        #data-management-dropdown a:hover {
+            background-color: #f1f5f9;
+        }
+        
+        /* 下拉菜单显示类 */
+        #data-management-dropdown.show {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        /* 下拉菜单显示/隐藏动画 */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-5px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        #data-management-dropdown.show {
+            display: block;
+            animation: fadeIn 0.2s ease;
+        }
     </style>
 </head>
 <body class="bg-gray-50 font-sans">
@@ -107,8 +143,34 @@
         <!-- 顶部导航栏 -->
         <header class="z-10 bg-white shadow-sm">
             <div class="flex items-center justify-between h-16 px-4 border-b border-gray-200 bg-primary">
-                <h1 class="text-xl font-bold text-white">普通发票管理系统</h1>
-                <span class="text-sm text-white">Designed By AlonZhang(136 6511 9291)</span>
+                <div class="flex items-center">
+                    <svg class="w-8 h-8 mr-2" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="50" cy="50" r="48" fill="#1e40af" stroke="#ffffff" stroke-width="4"/>
+                        <path d="M25,35 L50,60 L75,35" fill="none" stroke="#ffffff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M35,65 L50,80 L65,65" fill="none" stroke="#ffffff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <h1 class="text-xl font-bold text-white">无锡泰益特钢有限公司-发票管理系统</h1>
+                </div>
+                <div class="flex items-center">
+                    <!-- 数据管理下拉菜单 -->
+                    <div class="relative mr-4">
+                        <button id="data-management-btn" class="flex items-center px-4 py-2 rounded-md text-white hover:bg-blue-700 focus:outline-none">
+                            <i class="fa fa-database mr-2"></i>
+                            <span>数据管理</span>
+                            <i class="fa fa-caret-down ml-2"></i>
+                        </button>
+                        <!-- 下拉菜单 -->
+                        <div id="data-management-dropdown" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20 hidden">
+                            <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-gray-100" id="backup-data-btn">
+                                <i class="fa fa-download mr-2"></i>备份数据
+                            </a>
+                            <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-gray-100" id="restore-data-btn">
+                                <i class="fa fa-upload mr-2"></i>恢复数据
+                            </a>
+                        </div>
+                    </div>
+                    <span class="text-sm text-white">Designed By AlonZhang(136 6511 9291)</span>
+                </div>
             </div>
             <!-- 水平菜单栏 -->
             <nav class="bg-white border-b border-gray-200 px-4">
@@ -128,8 +190,6 @@
                     <button class="md:hidden text-gray-500 focus:outline-none" id="mobile-menu-button">
                         <i class="fa fa-bars text-xl"></i>
                     </button>
-                    
-
                     
 
                 </div>
@@ -3411,6 +3471,122 @@
                     filterInvoices(document.getElementById('search-input').value);
                 });
             });
+        }
+        
+        // 数据管理功能
+        document.addEventListener('DOMContentLoaded', function() {
+            // 下拉菜单交互
+            const dataManagementBtn = document.getElementById('data-management-btn');
+            const dataManagementDropdown = document.getElementById('data-management-dropdown');
+            
+            // 点击按钮显示/隐藏下拉菜单
+            dataManagementBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                dataManagementDropdown.classList.toggle('show');
+            });
+            
+            // 点击页面其他地方隐藏下拉菜单
+            document.addEventListener('click', function() {
+                dataManagementDropdown.classList.remove('show');
+            });
+            
+            // 防止点击下拉菜单内部时关闭菜单
+            dataManagementDropdown.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+            
+            // 备份数据功能
+            document.getElementById('backup-data-btn').addEventListener('click', function(e) {
+                e.preventDefault();
+                backupData();
+            });
+            
+            // 恢复数据功能
+            document.getElementById('restore-data-btn').addEventListener('click', function(e) {
+                e.preventDefault();
+                restoreData();
+            });
+        });
+        
+        // 备份数据函数
+        function backupData() {
+            try {
+                // 获取localStorage中的所有数据
+                const allData = {
+                    invoices: JSON.parse(localStorage.getItem('invoices') || '[]'),
+                    backupDate: new Date().toISOString(),
+                    version: '1.0'
+                };
+                
+                // 创建备份文件名
+                const backupFileName = `invoice_backup_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`;
+                
+                // 创建Blob并下载
+                const blob = new Blob([JSON.stringify(allData, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = backupFileName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                // 显示成功提示
+                alert('数据备份成功！');
+            } catch (error) {
+                console.error('备份数据失败:', error);
+                alert('数据备份失败，请重试！');
+            }
+        }
+        
+        // 恢复数据函数
+        function restoreData() {
+            try {
+                // 创建文件输入元素
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.json';
+                
+                // 监听文件选择
+                input.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            // 解析备份数据
+                            const backupData = JSON.parse(e.target.result);
+                            
+                            // 验证备份数据格式
+                            if (!backupData.invoices || !Array.isArray(backupData.invoices)) {
+                                throw new Error('备份文件格式不正确！');
+                            }
+                            
+                            // 确认恢复
+                            if (confirm('确定要恢复数据吗？这将覆盖当前所有数据！')) {
+                                // 恢复数据到localStorage
+                                localStorage.setItem('invoices', JSON.stringify(backupData.invoices));
+                                
+                                // 重新加载页面以显示恢复后的数据
+                                location.reload();
+                            }
+                        } catch (error) {
+                            console.error('恢复数据失败:', error);
+                            alert('恢复数据失败，备份文件格式不正确！');
+                        }
+                    };
+                    
+                    reader.readAsText(file);
+                });
+                
+                // 触发文件选择对话框
+                input.click();
+            } catch (error) {
+                console.error('恢复数据失败:', error);
+                alert('恢复数据失败，请重试！');
+            }
         }
     </script>
 
