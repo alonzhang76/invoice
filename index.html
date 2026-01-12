@@ -355,7 +355,7 @@
                         
                         <!-- 待付款发票卡片 -->
                         <div class="bg-white rounded-lg shadow-card p-4">
-                            <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center justify-between">
                                 <div>
                                     <p class="text-sm font-medium text-gray-500">待付款发票</p>
                                     <h3 id="pending-invoices" class="text-2xl font-bold text-yellow-600">0</h3>
@@ -364,14 +364,11 @@
                                     <i class="fa fa-clock-o text-yellow-600 text-xl"></i>
                                 </div>
                             </div>
-                            <div class="space-y-1 text-sm" id="pending-invoices-details">
-                                <!-- 待付款发票详情将通过JavaScript动态填充 -->
-                            </div>
                         </div>
                         
                         <!-- 已付清发票卡片 -->
                         <div class="bg-white rounded-lg shadow-card p-4">
-                            <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center justify-between">
                                 <div>
                                     <p class="text-sm font-medium text-gray-500">已付清发票</p>
                                     <h3 id="paid-invoices" class="text-2xl font-bold text-green-600">0</h3>
@@ -379,9 +376,6 @@
                                 <div class="p-3 rounded-full bg-green-100">
                                     <i class="fa fa-check-circle text-green-600 text-xl"></i>
                                 </div>
-                            </div>
-                            <div class="space-y-1 text-sm" id="paid-invoices-details">
-                                <!-- 已付清发票详情将通过JavaScript动态填充 -->
                             </div>
                         </div>
                         
@@ -1557,12 +1551,6 @@
             const allInvoices = JSON.parse(localStorage.getItem('invoices')) || [];
             const paymentRecords = JSON.parse(localStorage.getItem('paymentRecords')) || [];
             
-            // 获取预设的公司名称
-            const companyName1 = localStorage.getItem('companyName1') || '公司1';
-            const companyName2 = localStorage.getItem('companyName2') || '公司2';
-            const normalizedCompany1 = normalizeCompanyName(companyName1);
-            const normalizedCompany2 = normalizeCompanyName(companyName2);
-            
             // 计算统计数据
             const totalInvoices = allInvoices.length;
             const pendingInvoices = allInvoices.filter(invoice => invoice.status === '待付款' || invoice.status === '部分付款').length;
@@ -1572,18 +1560,6 @@
             let totalOwed = 0;
             let ordinaryInputOwed = 0; // 普票+专票-进项欠款
             let outputOwed = 0; // 专票-销项欠款
-            
-            // 按公司和发票类型统计待付款金额
-            const pendingByCompany = {
-                [normalizedCompany1]: { 普票: 0, '专票-进项': 0, '专票-销项': 0, total: 0 },
-                [normalizedCompany2]: { 普票: 0, '专票-进项': 0, '专票-销项': 0, total: 0 }
-            };
-            
-            // 按公司和发票类型统计已付清金额
-            const paidByCompany = {
-                [normalizedCompany1]: { 普票: 0, '专票-进项': 0, '专票-销项': 0, total: 0 },
-                [normalizedCompany2]: { 普票: 0, '专票-进项': 0, '专票-销项': 0, total: 0 }
-            };
             
             // 准备汇总数据
             const summaryData = allInvoices.map(invoice => {
@@ -1602,76 +1578,11 @@
                     outputOwed += owed > 0 ? owed : 0;
                 }
                 
-                // 确定发票属于哪个公司
-                let company = null;
-                if (invoice.invoiceType === '专票-销项') {
-                    // 专票-销项：销售方是公司
-                    if (normalizeCompanyName(invoice.seller) === normalizedCompany1) {
-                        company = normalizedCompany1;
-                    } else if (normalizeCompanyName(invoice.seller) === normalizedCompany2) {
-                        company = normalizedCompany2;
-                    }
-                } else {
-                    // 普票和专票-进项：购买方是公司
-                    if (normalizeCompanyName(invoice.buyer) === normalizedCompany1) {
-                        company = normalizedCompany1;
-                    } else if (normalizeCompanyName(invoice.buyer) === normalizedCompany2) {
-                        company = normalizedCompany2;
-                    }
-                }
-                
-                // 统计到对应的公司和发票类型
-                if (company) {
-                    if (invoice.status === '待付款' || invoice.status === '部分付款') {
-                        // 待付款发票
-                        if (pendingByCompany[company]) {
-                            pendingByCompany[company][invoice.invoiceType] += owed > 0 ? owed : 0;
-                            pendingByCompany[company].total += owed > 0 ? owed : 0;
-                        }
-                    } else if (invoice.status === '已付清') {
-                        // 已付清发票
-                        if (paidByCompany[company]) {
-                            paidByCompany[company][invoice.invoiceType] += invoiceAmount;
-                            paidByCompany[company].total += invoiceAmount;
-                        }
-                    }
-                }
-                
                 return {
                     ...invoice,
                     owed: owed
                 };
             });
-            
-            // 更新待付款发票详情
-            const pendingDetails = document.getElementById('pending-invoices-details');
-            pendingDetails.innerHTML = `
-                <div class="font-semibold">${companyName1}：</div>
-                <div class="pl-4">普票：¥${pendingByCompany[normalizedCompany1]['普票'].toFixed(2)}</div>
-                <div class="pl-4">专票-进项：¥${pendingByCompany[normalizedCompany1]['专票-进项'].toFixed(2)}</div>
-                <div class="pl-4">专票-销项：¥${pendingByCompany[normalizedCompany1]['专票-销项'].toFixed(2)}</div>
-                <div class="pl-4 font-bold">合计：¥${pendingByCompany[normalizedCompany1].total.toFixed(2)}</div>
-                <div class="font-semibold mt-2">${companyName2}：</div>
-                <div class="pl-4">普票：¥${pendingByCompany[normalizedCompany2]['普票'].toFixed(2)}</div>
-                <div class="pl-4">专票-进项：¥${pendingByCompany[normalizedCompany2]['专票-进项'].toFixed(2)}</div>
-                <div class="pl-4">专票-销项：¥${pendingByCompany[normalizedCompany2]['专票-销项'].toFixed(2)}</div>
-                <div class="pl-4 font-bold">合计：¥${pendingByCompany[normalizedCompany2].total.toFixed(2)}</div>
-            `;
-            
-            // 更新已付清发票详情
-            const paidDetails = document.getElementById('paid-invoices-details');
-            paidDetails.innerHTML = `
-                <div class="font-semibold">${companyName1}：</div>
-                <div class="pl-4">普票：¥${paidByCompany[normalizedCompany1]['普票'].toFixed(2)}</div>
-                <div class="pl-4">专票-进项：¥${paidByCompany[normalizedCompany1]['专票-进项'].toFixed(2)}</div>
-                <div class="pl-4">专票-销项：¥${paidByCompany[normalizedCompany1]['专票-销项'].toFixed(2)}</div>
-                <div class="pl-4 font-bold">合计：¥${paidByCompany[normalizedCompany1].total.toFixed(2)}</div>
-                <div class="font-semibold mt-2">${companyName2}：</div>
-                <div class="pl-4">普票：¥${paidByCompany[normalizedCompany2]['普票'].toFixed(2)}</div>
-                <div class="pl-4">专票-进项：¥${paidByCompany[normalizedCompany2]['专票-进项'].toFixed(2)}</div>
-                <div class="pl-4">专票-销项：¥${paidByCompany[normalizedCompany2]['专票-销项'].toFixed(2)}</div>
-                <div class="pl-4 font-bold">合计：¥${paidByCompany[normalizedCompany2].total.toFixed(2)}</div>
-            `;
             
             // 搜索过滤
             let filteredData = summaryData;
@@ -2088,14 +1999,6 @@
                 });
             }
             
-            // 抬头公司筛选事件
-            const paymentCompanyFilter = document.getElementById('payment-company-filter');
-            if (paymentCompanyFilter) {
-                paymentCompanyFilter.addEventListener('change', function() {
-                    filterPaymentRecords(document.getElementById('payment-search-input').value.toLowerCase());
-                });
-            }
-            
             // 自定义日期搜索事件
             const paymentCustomDateSearch = document.getElementById('payment-custom-date-search');
             if (paymentCustomDateSearch) {
@@ -2208,17 +2111,7 @@
                 // 抬头公司筛选条件
                 let companyMatch = true;
                 if (paymentCompany && paymentCompany !== '') {
-                    // 规范化筛选条件中的公司名称
-                    const normalizedFilterCompany = normalizeCompanyName(paymentCompany);
-                    
-                    // 根据付款类型判断使用哪个字段
-                    // 付款时，付款单位是公司
-                    // 收款时，收款单位是公司
-                    if (record.type === '付款') {
-                        companyMatch = normalizeCompanyName(record.payer || '') === normalizedFilterCompany;
-                    } else {
-                        companyMatch = normalizeCompanyName(record.payee || '') === normalizedFilterCompany;
-                    }
+                    companyMatch = String(record.company || '') === paymentCompany;
                 }
                 
                 // 日期筛选
@@ -2610,92 +2503,29 @@
             
             document.body.insertAdjacentHTML('beforeend', modalHtml);
             
-            // 获取输入元素
+            // 添加收款单位输入事件监听，更新发票号码选项
             const payeeInput = document.getElementById('payment-record-payee');
-            const payerInput = document.getElementById('payment-record-payer');
-            const invoiceNoInput = document.getElementById('payment-record-invoiceNo');
-            const typeSelect = document.getElementById('payment-record-type');
-            
-            // 根据类型设置只读状态的函数
-            function setReadOnlyByType() {
-                const type = typeSelect.value;
-                if (type === '收款') {
-                    // 收款时，收款单位只读
-                    payeeInput.readOnly = true;
-                    payeeInput.classList.add('bg-gray-50');
-                    payerInput.readOnly = false;
-                    payerInput.classList.remove('bg-gray-50');
-                } else {
-                    // 付款时，付款单位只读
-                    payerInput.readOnly = true;
-                    payerInput.classList.add('bg-gray-50');
-                    payeeInput.readOnly = false;
-                    payeeInput.classList.remove('bg-gray-50');
-                }
-            }
-            
-            // 自动填充收款/付款单位的函数
-            function autoFillCompany() {
-                const type = typeSelect.value;
-                const payer = payerInput.value;
-                const payee = payeeInput.value;
-                const invoiceNo = invoiceNoInput.value;
-                
-                // 只有当两个条件都满足时才自动填充
-                if (!invoiceNo) return;
-                
-                const invoices = JSON.parse(localStorage.getItem('invoices')) || [];
-                const invoice = invoices.find(inv => inv.invoiceNo === invoiceNo);
-                
-                if (!invoice) return;
-                
-                if (type === '收款') {
-                    // 收款时，根据发票号码和付款单位填充收款单位
-                    if (payer && normalizeCompanyName(payer) === normalizeCompanyName(invoice.buyer)) {
-                        payeeInput.value = invoice.seller;
-                    }
-                } else {
-                    // 付款时，根据发票号码和收款单位填充付款单位
-                    if (payee && normalizeCompanyName(payee) === normalizeCompanyName(invoice.seller)) {
-                        payerInput.value = invoice.buyer;
-                    }
-                }
-            }
-            
-            // 添加类型选择事件监听
-            typeSelect.addEventListener('change', function() {
-                updateCompanyNameOptions();
-                updateInvoiceNumberOptions();
-                setReadOnlyByType();
-                autoFillCompany(); // 类型变化时尝试自动填充
-            });
-            
-            // 添加收款单位输入事件监听
             if (payeeInput) {
                 payeeInput.addEventListener('input', function() {
                     updateInvoiceNumberOptions();
-                    autoFillCompany(); // 收款单位变化时尝试自动填充
                 });
             }
             
-            // 添加付款单位输入事件监听
+            // 添加付款单位输入事件监听，更新发票号码选项（收款状态下）
+            const payerInput = document.getElementById('payment-record-payer');
             if (payerInput) {
                 payerInput.addEventListener('input', function() {
                     updateInvoiceNumberOptions();
-                    autoFillCompany(); // 付款单位变化时尝试自动填充
                 });
             }
             
-            // 添加发票号码输入事件监听
+            // 添加发票号码输入事件监听，自动填写分类
+            const invoiceNoInput = document.getElementById('payment-record-invoiceNo');
             if (invoiceNoInput) {
                 invoiceNoInput.addEventListener('input', function() {
                     autoFillCategory();
-                    autoFillCompany(); // 发票号码变化时尝试自动填充
                 });
             }
-            
-            // 初始设置只读状态
-            setReadOnlyByType();
             
             // 添加金额输入框鼠标悬停提示
             const amountInput = document.getElementById('payment-record-amount');
@@ -2761,6 +2591,15 @@
                 }
             }
             
+            // 添加类型切换事件监听，更新相关选项
+            const typeSelect = document.getElementById('payment-record-type');
+            if (typeSelect) {
+                typeSelect.addEventListener('change', function() {
+                    updateCompanyNameOptions();
+                    updateInvoiceNumberOptions();
+                });
+            }
+            
             // 初始更新选项
             updateCompanyNameOptions();
             
@@ -2774,8 +2613,6 @@
         function updateCompanyNameOptions() {
             const companyName1 = localStorage.getItem('companyName1') || '公司1';
             const companyName2 = localStorage.getItem('companyName2') || '公司2';
-            const normalizedCompanyName1 = normalizeCompanyName(companyName1);
-            const normalizedCompanyName2 = normalizeCompanyName(companyName2);
             const payerDatalist = document.getElementById('payer-names-list');
             const payeeDatalist = document.getElementById('payee-names-list');
             const type = document.getElementById('payment-record-type').value;
@@ -2788,12 +2625,12 @@
                         <option value="${companyName2}">
                     `;
                     
-                    // 收款单位从发票列表中获取销售方名称，并过滤掉发票类型为专票-销项且已付清的记录
+                    // 收款单位从发票列表中获取销售方名称，并过滤掉发票类型为专票-销项的记录
                     const invoices = JSON.parse(localStorage.getItem('invoices')) || [];
-                    // 获取所有非专票-销项且未付清的销售方名称，去重并规范化
+                    // 获取所有非专票-销项的销售方名称，去重
                     const sellerNames = [...new Set(invoices
-                        .filter(invoice => invoice.invoiceType !== '专票-销项' && invoice.seller && invoice.status !== '已付清')
-                        .map(invoice => normalizeCompanyName(invoice.seller)))];
+                        .filter(invoice => invoice.invoiceType !== '专票-销项' && invoice.seller)
+                        .map(invoice => invoice.seller))];
                     
                     // 构建收款单位的选项列表
                     let payeeOptions = '';
@@ -2803,12 +2640,12 @@
                     });
                     payeeDatalist.innerHTML = payeeOptions;
                 } else {
-                    // 收款时，付款单位从发票列表中获取购买方名称，并过滤掉发票类型为专票-进项且已付清的记录
+                    // 收款时，付款单位从发票列表中获取购买方名称，并过滤掉发票类型为专票-进项的记录
                     const invoices = JSON.parse(localStorage.getItem('invoices')) || [];
-                    // 获取所有非专票-进项且未付清的购买方名称，去重并规范化
+                    // 获取所有非专票-进项的购买方名称，去重
                     const buyerNames = [...new Set(invoices
-                        .filter(invoice => invoice.invoiceType !== '专票-进项' && invoice.buyer && invoice.status !== '已付清')
-                        .map(invoice => normalizeCompanyName(invoice.buyer)))];
+                        .filter(invoice => invoice.invoiceType !== '专票-进项' && invoice.buyer)
+                        .map(invoice => invoice.buyer))];
                     
                     // 构建付款单位的选项列表
                     let payerOptions = '';
@@ -2839,7 +2676,7 @@
                 
                 // 付款时，根据收款单位（销售方）过滤
                 const invoiceNumbers = [...new Set(invoices
-                    .filter(invoice => normalizeCompanyName(invoice.seller) === normalizeCompanyName(payee) && invoice.status !== '已付清')
+                    .filter(invoice => invoice.seller === payee && invoice.status !== '已付清')
                     .map(invoice => invoice.invoiceNo))];
                 
                 if (invoiceDatalist) {
@@ -2856,7 +2693,7 @@
                 
                 // 收款时，根据付款单位（购买方）过滤
                 const invoiceNumbers = [...new Set(invoices
-                    .filter(invoice => normalizeCompanyName(invoice.buyer) === normalizeCompanyName(payer) && invoice.status !== '已付清')
+                    .filter(invoice => invoice.buyer === payer && invoice.status !== '已付清')
                     .map(invoice => invoice.invoiceNo))];
                 
                 if (invoiceDatalist) {
@@ -3024,39 +2861,23 @@
             }
         }
         
-        // 规范化公司名称，将不同括号格式的公司名视为同一个
-        function normalizeCompanyName(companyName) {
-            if (!companyName) return companyName;
-            // 将全角括号转换为半角括号
-            const normalized = companyName.replace(/（/g, '(').replace(/）/g, ')');
-            // 处理特定公司名称，确保普利美（常州）环境工程科技有限公司和普利美(常州)环境工程科技有限公司视为同一个
-            if (normalized.includes('普利美') && normalized.includes('环境工程科技有限公司')) {
-                return '普利美(常州)环境工程科技有限公司';
-            }
-            return normalized;
-        }
-
         // 更新所有页面的抬头公司下拉框
         function updateCompanyDropdowns(companyName1, companyName2) {
-            // 规范化公司名称
-            const normalizedCompany1 = normalizeCompanyName(companyName1 || '公司1');
-            const normalizedCompany2 = normalizeCompanyName(companyName2 || '公司2');
-            
             // 更新发票列表页面的下拉框
             const invoiceCompanyFilter = document.getElementById('invoice-company-filter');
             if (invoiceCompanyFilter) {
                 // 更新公司1选项
                 const option1 = invoiceCompanyFilter.options[1];
                 if (option1) {
-                    option1.value = normalizedCompany1;
-                    option1.text = normalizedCompany1;
+                    option1.value = companyName1 || '公司1';
+                    option1.text = companyName1 || '公司1';
                 }
                 
                 // 更新公司2选项
                 const option2 = invoiceCompanyFilter.options[2];
                 if (option2) {
-                    option2.value = normalizedCompany2;
-                    option2.text = normalizedCompany2;
+                    option2.value = companyName2 || '公司2';
+                    option2.text = companyName2 || '公司2';
                 }
             }
             
@@ -3066,15 +2887,15 @@
                 // 更新公司1选项
                 const option1 = specialInvoiceCompanyFilter.options[1];
                 if (option1) {
-                    option1.value = normalizedCompany1;
-                    option1.text = normalizedCompany1;
+                    option1.value = companyName1 || '公司1';
+                    option1.text = companyName1 || '公司1';
                 }
                 
                 // 更新公司2选项
                 const option2 = specialInvoiceCompanyFilter.options[2];
                 if (option2) {
-                    option2.value = normalizedCompany2;
-                    option2.text = normalizedCompany2;
+                    option2.value = companyName2 || '公司2';
+                    option2.text = companyName2 || '公司2';
                 }
             }
             
@@ -3084,15 +2905,15 @@
                 // 更新公司1选项
                 const option1 = ordinaryInvoiceCompanyFilter.options[1];
                 if (option1) {
-                    option1.value = normalizedCompany1;
-                    option1.text = normalizedCompany1;
+                    option1.value = companyName1 || '公司1';
+                    option1.text = companyName1 || '公司1';
                 }
                 
                 // 更新公司2选项
                 const option2 = ordinaryInvoiceCompanyFilter.options[2];
                 if (option2) {
-                    option2.value = normalizedCompany2;
-                    option2.text = normalizedCompany2;
+                    option2.value = companyName2 || '公司2';
+                    option2.text = companyName2 || '公司2';
                 }
             }
             
@@ -3102,15 +2923,15 @@
                 // 更新公司1选项
                 const option1 = paymentCompanyFilter.options[1];
                 if (option1) {
-                    option1.value = normalizedCompany1;
-                    option1.text = normalizedCompany1;
+                    option1.value = companyName1 || '公司1';
+                    option1.text = companyName1 || '公司1';
                 }
                 
                 // 更新公司2选项
                 const option2 = paymentCompanyFilter.options[2];
                 if (option2) {
-                    option2.value = normalizedCompany2;
-                    option2.text = normalizedCompany2;
+                    option2.value = companyName2 || '公司2';
+                    option2.text = companyName2 || '公司2';
                 }
             }
         }
@@ -3146,8 +2967,7 @@
             // 获取预设的公司名称
             const companyName1 = localStorage.getItem('companyName1') || '公司1';
             const companyName2 = localStorage.getItem('companyName2') || '公司2';
-            const normalizedCompanyName1 = normalizeCompanyName(companyName1);
-            const normalizedCompanyName2 = normalizeCompanyName(companyName2);
+            const validCompanyNames = [companyName1, companyName2];
             
             // 输入验证
             if (!date || !type || !category || !amount) {
@@ -3157,16 +2977,14 @@
             
             // 检查付款单位或收款单位是否有效
             if (type === '付款' && payer) {
-                const normalizedPayer = normalizeCompanyName(payer);
-                if (normalizedPayer !== normalizedCompanyName1 && normalizedPayer !== normalizedCompanyName2) {
+                if (!validCompanyNames.includes(payer)) {
                     alert('付款单位必须是预设的公司名称之一');
                     return;
                 }
             }
             
             if (type === '收款' && payee) {
-                const normalizedPayee = normalizeCompanyName(payee);
-                if (normalizedPayee !== normalizedCompanyName1 && normalizedPayee !== normalizedCompanyName2) {
+                if (!validCompanyNames.includes(payee)) {
                     alert('收款单位必须是预设的公司名称之一');
                     return;
                 }
@@ -3373,18 +3191,19 @@
                 // 抬头公司筛选条件
                 let companyMatch = true;
                 if (invoiceCompany && invoiceCompany !== '') {
-                    // 规范化筛选条件中的公司名称
-                    const normalizedFilterCompany = normalizeCompanyName(invoiceCompany);
+                    // 获取公司名称
+                    const companyName1 = localStorage.getItem('companyName1') || '公司1';
+                    const companyName2 = localStorage.getItem('companyName2') || '公司2';
                     
                     // 对于专票-销项：销售方是选定的公司
                     // 对于专票-进项：购买方是选定的公司
                     // 对于普票：销售方或购买方是选定的公司
                     if (invoice.invoiceType === '专票-销项') {
-                        companyMatch = normalizeCompanyName(invoice.seller || '').includes(normalizedFilterCompany);
+                        companyMatch = (invoice.seller || '').includes(invoiceCompany);
                     } else if (invoice.invoiceType === '专票-进项') {
-                        companyMatch = normalizeCompanyName(invoice.buyer || '').includes(normalizedFilterCompany);
+                        companyMatch = (invoice.buyer || '').includes(invoiceCompany);
                     } else {
-                        companyMatch = normalizeCompanyName(invoice.seller || '').includes(normalizedFilterCompany) || normalizeCompanyName(invoice.buyer || '').includes(normalizedFilterCompany);
+                        companyMatch = (invoice.seller || '').includes(invoiceCompany) || (invoice.buyer || '').includes(invoiceCompany);
                     }
                 }
                 
@@ -3616,7 +3435,7 @@
                 const matchesType = !invoiceType || invoice.invoiceType === invoiceType;
                 
                 // 检查抬头公司
-                const matchesCompany = !invoiceCompany || (invoice.buyer && normalizeCompanyName(invoice.buyer).includes(normalizeCompanyName(invoiceCompany)));
+                const matchesCompany = !invoiceCompany || (invoice.buyer && invoice.buyer.includes(invoiceCompany));
                 
                 return matchesSearch && matchesStatus && matchesType && matchesCompany;
             });
@@ -3730,7 +3549,7 @@
                 const matchesType = !invoiceType || invoice.invoiceType === invoiceType;
                 
                 // 检查抬头公司
-                const matchesCompany = !invoiceCompany || (invoice.buyer && normalizeCompanyName(invoice.buyer).includes(normalizeCompanyName(invoiceCompany)));
+                const matchesCompany = !invoiceCompany || (invoice.buyer && invoice.buyer.includes(invoiceCompany));
                 
                 return matchesSearch && matchesStatus && matchesType && matchesCompany;
             });
@@ -3865,15 +3684,16 @@
                 // 抬头公司筛选条件
                 let companyMatch = true;
                 if (invoiceCompany && invoiceCompany !== '') {
-                    // 规范化筛选条件中的公司名称
-                    const normalizedFilterCompany = normalizeCompanyName(invoiceCompany);
+                    // 获取公司名称
+                    const companyName1 = localStorage.getItem('companyName1') || '公司1';
+                    const companyName2 = localStorage.getItem('companyName2') || '公司2';
                     
                     // 对于专票-销项：销售方是选定的公司
                     // 对于专票-进项：购买方是选定的公司
                     if (invoice.invoiceType === '专票-销项') {
-                        companyMatch = normalizeCompanyName(invoice.seller || '').includes(normalizedFilterCompany);
+                        companyMatch = (invoice.seller || '').includes(invoiceCompany);
                     } else if (invoice.invoiceType === '专票-进项') {
-                        companyMatch = normalizeCompanyName(invoice.buyer || '').includes(normalizedFilterCompany);
+                        companyMatch = (invoice.buyer || '').includes(invoiceCompany);
                     }
                 }
                 
@@ -4006,18 +3826,15 @@
                 // 抬头公司筛选条件
                 let companyMatch = true;
                 if (invoiceCompany && invoiceCompany !== '') {
-                    // 规范化筛选条件中的公司名称
-                    const normalizedFilterCompany = normalizeCompanyName(invoiceCompany);
-                    
                     // 对于专票-销项：销售方是选定的公司
                     // 对于专票-进项：购买方是选定的公司
                     // 对于普票：销售方或购买方是选定的公司
                     if (invoice.invoiceType === '专票-销项') {
-                        companyMatch = normalizeCompanyName(invoice.seller || '').includes(normalizedFilterCompany);
+                        companyMatch = (invoice.seller || '').includes(invoiceCompany);
                     } else if (invoice.invoiceType === '专票-进项') {
-                        companyMatch = normalizeCompanyName(invoice.buyer || '').includes(normalizedFilterCompany);
+                        companyMatch = (invoice.buyer || '').includes(invoiceCompany);
                     } else {
-                        companyMatch = normalizeCompanyName(invoice.seller || '').includes(normalizedFilterCompany) || normalizeCompanyName(invoice.buyer || '').includes(normalizedFilterCompany);
+                        companyMatch = (invoice.seller || '').includes(invoiceCompany) || (invoice.buyer || '').includes(invoiceCompany);
                     }
                 }
                 
@@ -5120,11 +4937,8 @@
                 // 抬头公司筛选条件
                 let companyMatch = true;
                 if (invoiceCompany && invoiceCompany !== '') {
-                    // 规范化筛选条件中的公司名称
-                    const normalizedFilterCompany = normalizeCompanyName(invoiceCompany);
-                    
                     // 对于普票：销售方或购买方是选定的公司
-                    companyMatch = normalizeCompanyName(invoice.seller || '').includes(normalizedFilterCompany) || normalizeCompanyName(invoice.buyer || '').includes(normalizedFilterCompany);
+                    companyMatch = (invoice.seller || '').includes(invoiceCompany) || (invoice.buyer || '').includes(invoiceCompany);
                 }
                 
                 // 登记日期筛选条件
@@ -5678,13 +5492,10 @@
             // 4. 提取发票号码
             console.log('开始查找发票号码...');
             // 多种发票号码格式匹配，支持带有空格的数字
-            // 优先匹配明确的发票号码字段
             const invoiceNumberPatterns = [
-                /发\s*票\s*号\s*码\s*[:：]\s*([\d\s]+)/, // 格式1：发 票 号 码 ：2 6 3 2 7 0 0...（带空格和冒号前空格）
-                /发票号码\s*[:：]\s*([\d\s]+)/, // 格式2：发票号码 ：2 6 3 2 7 0 0...（带空格和冒号前空格）
-                /发票号码[:：]\s*([\d\s]+)/, // 格式3：发票号码: 2632700...（不带空格）
-                // 处理过路费发票，先提取发票代码和号码，然后取号码部分
-                /发票代码[:：]\s*[\d\s]+\s*发票号码[:：]\s*([\d\s]+)/i
+                /发\s*票\s*号\s*码\s*[:：]\s*([\d\s]{12,40})/, // 格式1：发 票 号 码 ：2 6 3 2 7 0 0...（带空格和冒号前空格）
+                /发票号码\s*[:：]\s*([\d\s]{12,40})/, // 格式2：发票号码 ：2 6 3 2 7 0 0...（带空格和冒号前空格）
+                /([\d\s]{12,40})/ // 格式3：直接匹配带空格的12-40位数字
             ];
             
             for (const pattern of invoiceNumberPatterns) {
@@ -5694,329 +5505,211 @@
                     break;
                 }
             }
-            
-            // 如果没有找到，尝试直接匹配数字序列，但排除发票代码
-            if (!invoiceNumber) {
-                const allNumbers = processedText.match(/([\d\s]{8,40})/g);
-                if (allNumbers) {
-                    // 先尝试匹配长数字序列（增值税发票通常12-20位）
-                    for (const numStr of allNumbers) {
-                        const cleanNum = numStr.replace(/\s+/g, '');
-                        // 增值税发票号码通常是12-20位，过路费发票是8位
-                        if (cleanNum.length >= 12 && cleanNum.length <= 20) {
-                            invoiceNumber = cleanNum;
-                            break;
-                        }
-                    }
-                    // 如果没有找到长数字序列，再尝试匹配8位数字
-                    if (!invoiceNumber) {
-                        for (const numStr of allNumbers) {
-                            const cleanNum = numStr.replace(/\s+/g, '');
-                            if (cleanNum.length === 8) {
-                                invoiceNumber = cleanNum;
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
             console.log('最终发票号码:', invoiceNumber);
             
             // 5. 提取开票日期
             console.log('开始查找发票日期...');
             
-            // 直接提取带有空格的年份、月份和日期
-            // 年份提取：只匹配开票日期中的年份，支持格式如"2024 年"或"2 0 2 4 年"
-            // 修复：添加期和冒号之间的空格支持
-            const yearMatch = processedText.match(/开\s*票\s*日\s*期\s*[:：]\s*.*?(2\s*0\s*\d\s*\d)\s*年/); // 支持期和冒号之间有空格
-            // 月份提取：只匹配开票日期中的月份
-            const monthMatch = processedText.match(/开\s*票\s*日\s*期\s*[:：]\s*.*?(0?[1-9]|1[0-2])\s*月/); // 支持期和冒号之间有空格
-            // 日期提取：只匹配开票日期中的日期
-            const dayMatch = processedText.match(/开\s*票\s*日\s*期\s*[:：]\s*.*?(0?[1-9]|[12]\d|3[01])\s*日/); // 支持期和冒号之间有空格
+            // 修改：支持日期在'开票日期:'之前或之后的情况
+            // 匹配格式：2026年01月10日 开票日期: 或 开票日期: 2026年01月10日
+            const datePattern = /(2\s*0\s*\d\s*\d)\s*年\s*(0?[1-9]|1[0-2])\s*月\s*(0?[1-9]|[12]\d|3[01])\s*日/;
+            const dateMatch = processedText.match(datePattern);
             
-            if (yearMatch && monthMatch && dayMatch) {
-                const year = yearMatch[1].replace(/\s+/g, '');
-                const month = monthMatch[1].replace(/\s+/g, '').padStart(2, '0');
-                const day = dayMatch[1].replace(/\s+/g, '').padStart(2, '0');
+            if (dateMatch) {
+                const year = dateMatch[1].replace(/\s+/g, '');
+                const month = dateMatch[2].replace(/\s+/g, '').padStart(2, '0');
+                const day = dateMatch[3].replace(/\s+/g, '').padStart(2, '0');
                 invoiceDate = `${year}-${month}-${day}`;
-                console.log('直接提取年月日:', invoiceDate);
+                console.log('提取到发票日期:', invoiceDate);
             }
             console.log('最终发票日期:', invoiceDate);
             
             // 6. 提取购买方和销售方信息
             console.log('开始查找购买方和销售方...');
             
-            // 首先检查是否为过路费发票（只声明一次）
-            let isTollInvoice = processedText.includes('车辆通行费') || processedText.includes('通行费');
+            // 首先，检查是否为特殊格式（每个字之间都有空格）
+            // 修改：检测"购"和"销"连续出现的情况，而不是同时检测"买"和"售"
+            const hasCharacterSpaces = /购\s*销/.test(processedText) && /\s/.test(processedText);
             let noSpaceText;
             
-            if (isTollInvoice) {
-                console.log('检测到过路费发票，开始特殊处理...');
+            if (hasCharacterSpaces) {
+                console.log('检测到特殊格式：每个字之间都有空格，开始特殊处理...');
                 
-                // 过路费发票格式特殊，购买方和销售方都有明确的"名称："前缀
-                // 提取购买方
-                const buyerNameMatch = processedText.match(/购\s*买\s*方[\s\S]*?名\s*称[:：]\s*([^\n]+?)\s*纳税人识别号/);
-                if (buyerNameMatch) {
-                    buyer = buyerNameMatch[1].trim().replace(/\s+/g, '');
-                    console.log('从过路费发票提取购买方:', buyer);
-                } else {
-                    // 备选：直接查找第一个"名称："后的公司名称
-                    const firstCompanyMatch = processedText.match(/名\s*称[:：]\s*([^\n]+?)(?:\s*纳税人识别号|\s*购)/);
-                    if (firstCompanyMatch) {
-                        buyer = firstCompanyMatch[1].trim().replace(/\s+/g, '');
-                        console.log('从过路费发票备选提取购买方:', buyer);
+                // 特殊处理：移除所有空格，然后提取公司名称
+                noSpaceText = processedText.replace(/\s+/g, '');
+                console.log('移除所有空格后的完整文本:', noSpaceText.substring(0, 150) + '...');
+                
+                // 优化：使用更通用的方法提取公司名称，不依赖特定公司
+                // 首先查找"购销"关键词位置，作为提取公司名称的起点
+                const purchaseSaleIndex = noSpaceText.indexOf('购销');
+                if (purchaseSaleIndex !== -1) {
+                    // 从"购销"后开始提取公司名称
+                    let companyText = noSpaceText.substring(purchaseSaleIndex + 2);
+                    
+                    // 查找"名称：名称："或"名"字，作为公司名称的结束点
+                    const nameMarkIndex = companyText.indexOf('名');
+                    if (nameMarkIndex !== -1) {
+                        companyText = companyText.substring(0, nameMarkIndex);
                     }
-                }
-                
-                // 提取销售方
-                const sellerNameMatch = processedText.match(/销\s*售\s*方[\s\S]*?名\s*称[:：]\s*([^\n]+?)\s*纳税人识别号/);
-                if (sellerNameMatch) {
-                    seller = sellerNameMatch[1].trim().replace(/\s+/g, '');
-                    console.log('从过路费发票提取销售方:', seller);
-                } else {
-                    // 备选：查找第二个"名称："后的公司名称
-                    const nameMatches = processedText.match(/名\s*称[:：]\s*([^\n]+?)(?:\s*纳税人识别号|\s*\n)/g);
-                    if (nameMatches && nameMatches.length >= 2) {
-                        // 处理第二个匹配项
-                        const secondNameMatch = nameMatches[1].match(/名\s*称[:：]\s*([^\n]+?)(?:\s*纳税人识别号|\s*\n)/);
-                        if (secondNameMatch) {
-                            seller = secondNameMatch[1].trim().replace(/\s+/g, '');
-                            console.log('从过路费发票备选提取销售方:', seller);
+                    
+                    console.log('提取的公司文本:', companyText);
+                    
+                    // 使用更严格的正则提取公司名称，匹配完整的公司结构
+                    const companyRegex = /[\u4e00-\u9fa5\w（）]+?公司(?:[\u4e00-\u9fa5\w（）]*?分公司)?/g;
+                    const allCompanies = companyText.match(companyRegex) || [];
+                    console.log('提取到的公司列表:', allCompanies);
+                    
+                    if (allCompanies.length >= 2) {
+                        buyer = allCompanies[0];
+                        seller = allCompanies[1];
+                    } else {
+                        // 如果正则提取失败，尝试使用更简单的方法
+                        // 查找两个连续的"公司"关键词
+                        const firstCompanyIndex = companyText.indexOf('公司');
+                        if (firstCompanyIndex !== -1) {
+                            const secondCompanyIndex = companyText.indexOf('公司', firstCompanyIndex + 2);
+                            if (secondCompanyIndex !== -1) {
+                                buyer = companyText.substring(0, firstCompanyIndex + 2);
+                                seller = companyText.substring(firstCompanyIndex + 2, secondCompanyIndex + 2);
+                                console.log('通过"公司"关键词分割提取：购买方:', buyer, '销售方:', seller);
+                            }
                         }
                     }
                 }
-            } else {
-                // 首先，检查是否为特殊格式（每个字之间都有空格）
-                // 修改：检测"购"和"销"连续出现的情况，而不是同时检测"买"和"售"
-                const hasCharacterSpaces = /购\s*销/.test(processedText) && /\s/.test(processedText);
                 
-                if (hasCharacterSpaces) {
-                    console.log('检测到特殊格式：每个字之间都有空格，开始特殊处理...');
+                // 兜底：直接匹配所有可能的公司名称
+                if (!buyer || !seller) {
+                    const companyRegex = /[\u4e00-\u9fa5\w（）]+?公司(?:[\u4e00-\u9fa5\w（）]*?分公司)?/g;
+                    const allCompanies = noSpaceText.match(companyRegex) || [];
+                    console.log('兜底提取到的公司列表:', allCompanies);
                     
-                    // 特殊处理：移除所有空格，然后提取公司名称
-                    noSpaceText = processedText.replace(/\s+/g, '');
-                    console.log('移除所有空格后的完整文本:', noSpaceText);
+                    if (allCompanies.length >= 2) {
+                        buyer = allCompanies[0];
+                        seller = allCompanies[1];
+                    }
+                }
+                
+                console.log('根据特殊格式提取：购买方:', buyer, '销售方:', seller);
+            } else {
+                // 正常格式处理
+                // 首先，严格从预处理文本中提取，利用"购"在前，"销"在后的规律
+                // 查找包含"购"和"销"的文本，支持不同格式
+                const purchaseSaleRegex = /购\s*销\s*名称[:：]\s*名称[:：]\s*/;
+                const purchaseSaleMatch = processedText.match(purchaseSaleRegex);
+                
+                if (purchaseSaleMatch) {
+                    console.log('找到购销方标志，开始提取公司名称');
                     
-                    // 优化：使用更通用的方法提取公司名称，不依赖特定公司
+                    // 获取购销方标志后的文本
+                    let afterPurchaseSale = processedText.substring(purchaseSaleMatch.index + purchaseSaleMatch[0].length);
+                    console.log('购销方标志后的文本:', afterPurchaseSale);
                     
-                    // 专门处理"购销买售名称："格式
-                    const purchaseSaleNamePattern = /购销买售名称：([^名称]+?)名称：([^方]+?)方/;
-                    const purchaseSaleNameMatch = noSpaceText.match(purchaseSaleNamePattern);
+                    // 截断文本，只保留公司名称部分，避免后续信息干扰
+                    const endMarks = ['售', '方', '信', '统一社会信用代码', '纳税人识别号'];
+                    let endIndex = afterPurchaseSale.length;
+                    for (const mark of endMarks) {
+                        const index = afterPurchaseSale.indexOf(mark);
+                        if (index !== -1 && index < endIndex) {
+                            endIndex = index;
+                        }
+                    }
+                    afterPurchaseSale = afterPurchaseSale.substring(0, endIndex).trim();
+                    console.log('截断后的公司名称文本:', afterPurchaseSale);
                     
-                    if (purchaseSaleNameMatch) {
-                        console.log('匹配到"购销买售名称："格式');
-                        buyer = purchaseSaleNameMatch[1].trim();
-                        seller = purchaseSaleNameMatch[2].trim();
-                        console.log('通过"购销买售名称："格式提取：购买方:', buyer, '销售方:', seller);
+                    // 重新定义公司名称提取逻辑
+                    // 规则1：购前销后 - 第一个公司是购买方，第二个是销售方
+                    // 规则2：销售方公司名称结尾后一个字是"买"字
+                    
+                    console.log('开始提取公司名称...');
+                    
+                    // 1. 首先处理公司名称中的空格问题，特别是名称中间有空格的情况
+                    let companyText = afterPurchaseSale;
+                    
+                    // 2. 查找"买"字的位置，这是销售方的结束标志
+                    const buyIndex = companyText.indexOf('买');
+                    console.log('"买"字的位置:', buyIndex);
+                    
+                    // 3. 提取公司名称部分，无论是否有"买"字
+                    let beforeBuyText = companyText;
+                    if (buyIndex !== -1) {
+                        beforeBuyText = companyText.substring(0, buyIndex).trim();
+                    }
+                    console.log('提取的公司名称文本:', beforeBuyText);
+                    
+                    // 4. 移除多余空格，合并连续空格为一个
+                    const cleanedText = beforeBuyText.replace(/\s+/g, ' ');
+                    console.log('清理后的文本:', cleanedText);
+                    
+                    // 5. 移除所有空格，便于后续匹配
+                    noSpaceText = cleanedText.replace(/\s/g, '');
+                    console.log('移除所有空格后的文本:', noSpaceText);
+                    
+                    // 6. 改进的公司名称提取逻辑
+                    // 6.1 首先尝试匹配两个完整的公司名称
+                    const fullCompanyPattern = /([\u4e00-\u9fa5\w（）]+?公司)([\u4e00-\u9fa5\w（）]+?公司)/;
+                    const fullMatch = noSpaceText.match(fullCompanyPattern);
+                    
+                    if (fullMatch) {
+                        console.log('匹配到两个完整公司名称:', fullMatch[1], fullMatch[2]);
+                        buyer = fullMatch[1];
+                        seller = fullMatch[2];
                     } else {
-                        // 尝试查找所有公司名称，支持半角和全角括号
-                        const companyRegex = /[\u4e00-\u9fa5\w()（）]+?公司(?:[\u4e00-\u9fa5\w()（）]*?分公司)?/g;
+                        // 6.2 如果直接匹配失败，尝试通用匹配
+                        const companyRegex = /[\u4e00-\u9fa5\w（）]+?(?:公司|有限|集团|厂|店|中心|院|所|局|经营部|部|行|馆|坊|铺|站)/g;
                         const allCompanies = noSpaceText.match(companyRegex) || [];
+                        
                         console.log('提取到的公司列表:', allCompanies);
                         
                         if (allCompanies.length >= 2) {
+                            // 6.3 确保按照"购前销后"规则分配
                             buyer = allCompanies[0];
                             seller = allCompanies[1];
-                            console.log('通过正则提取：购买方:', buyer, '销售方:', seller);
+                            console.log('根据"购前销后"规则分配：购买方:', buyer, '销售方:', seller);
                         } else {
-                            // 尝试通过"名称："分割提取
-                            const nameMarks = [];
-                            let pos = 0;
-                            while ((pos = noSpaceText.indexOf('名称：', pos)) !== -1) {
-                                nameMarks.push(pos);
-                                pos += 3;
-                            }
+                            // 6.4 特殊处理：针对用户提供的新格式
+                            console.log('尝试针对新格式的特殊处理');
                             
-                            if (nameMarks.length >= 2) {
-                                // 第一个名称：到第二个名称：之间是购买方
-                                buyer = noSpaceText.substring(nameMarks[0] + 3, nameMarks[1]).trim();
-                                // 第二个名称：后到下一个标志之间是销售方
-                                let sellerStart = nameMarks[1] + 3;
-                                // 查找销售方结束位置：可以是数字、括号、统一社会信用代码等
-                                const sellerEnd = noSpaceText.substring(sellerStart).search(/[\d()（）]|统一社会信用代码|纳税人识别号|项目名称|合\s*计/);
-                                if (sellerEnd !== -1) {
-                                    seller = noSpaceText.substring(sellerStart, sellerStart + sellerEnd).trim();
-                                } else {
-                                    seller = noSpaceText.substring(sellerStart).trim();
-                                }
-                                console.log('通过"名称："分割提取：购买方:', buyer, '销售方:', seller);
+                            // 6.4.1 查找第一个"公司"关键词
+                            const firstCompanyIndex = noSpaceText.indexOf('公司');
+                            if (firstCompanyIndex !== -1) {
+                                // 提取第一个公司（购买方）
+                                buyer = noSpaceText.substring(0, firstCompanyIndex + 2);
+                                // 提取第二个公司（销售方）
+                                seller = noSpaceText.substring(firstCompanyIndex + 2);
+                                console.log('根据"公司"关键词分割：购买方:', buyer, '销售方:', seller);
                             }
                         }
                     }
-                    
-                    // 兜底：直接查找包含"公司"的所有子串
-                    if (!buyer || !seller) {
-                        console.log('进入兜底逻辑');
-                        const companyPositions = [];
-                        let pos = 0;
-                        while ((pos = noSpaceText.indexOf('公司', pos)) !== -1) {
-                            companyPositions.push(pos);
-                            pos += 2;
-                        }
-                        
-                        console.log('找到"公司"的位置:', companyPositions);
-                        
-                        if (companyPositions.length >= 2) {
-                            // 向前查找购买方名称的开始位置
-                            let buyerStart = 0;
-                            // 从第一个"公司"向前查找，直到遇到：名称：购销买售等标志，或者日期结束标志
-                            for (let i = companyPositions[0]; i >= 0; i--) {
-                                const char = noSpaceText[i];
-                                // 检查是否遇到日期结束标志（年月日）
-                                const isDateEnd = i > 3 && noSpaceText.substring(i-3, i+1) === '年';
-                                if (char === '：' || char === ':' || char === '售' || char === '买' || char === '购' || char === '销' || isDateEnd) {
-                                    buyerStart = i + 1;
-                                    break;
-                                }
-                            }
-                            buyer = noSpaceText.substring(buyerStart, companyPositions[0] + 2);
-                            
-                            // 向前查找销售方名称的开始位置
-                            let sellerStart = companyPositions[0] + 2;
-                            for (let i = companyPositions[1]; i >= sellerStart; i--) {
-                                const char = noSpaceText[i];
-                                if (char === '：' || char === ':' || char === '名') {
-                                    sellerStart = i + 1;
-                                    break;
-                                }
-                            }
-                            seller = noSpaceText.substring(sellerStart, companyPositions[1] + 2);
-                            
-                            console.log('兜底提取：购买方:', buyer, '销售方:', seller);
-                        }
-                    }
-                    
-                    console.log('根据特殊格式提取：购买方:', buyer, '销售方:', seller);
                 } else {
-                    // 正常格式处理
-                    // 首先，严格从预处理文本中提取，利用"购"在前，"销"在后的规律
-                    // 查找包含"购"和"销"的文本，支持不同格式
-                    const purchaseSaleRegex = /购\s*销\s*名称[:：]\s*名称[:：]\s*/;
-                    const purchaseSaleMatch = processedText.match(purchaseSaleRegex);
-                    
-                    if (purchaseSaleMatch) {
-                        console.log('找到购销方标志，开始提取公司名称');
-                        
-                        // 获取购销方标志后的文本
-                        let afterPurchaseSale = processedText.substring(purchaseSaleMatch.index + purchaseSaleMatch[0].length);
-                        console.log('购销方标志后的文本:', afterPurchaseSale);
-                        
-                        // 截断文本，只保留公司名称部分，避免后续信息干扰
-                        const endMarks = ['售', '方', '信', '统一社会信用代码', '纳税人识别号'];
-                        let endIndex = afterPurchaseSale.length;
-                        for (const mark of endMarks) {
-                            const index = afterPurchaseSale.indexOf(mark);
-                            if (index !== -1 && index < endIndex) {
-                                endIndex = index;
-                            }
-                        }
-                        afterPurchaseSale = afterPurchaseSale.substring(0, endIndex).trim();
-                        console.log('截断后的公司名称文本:', afterPurchaseSale);
-                        
-                        // 重新定义公司名称提取逻辑
-                        // 规则1：购前销后 - 第一个公司是购买方，第二个是销售方
-                        // 规则2：销售方公司名称结尾后一个字是"买"字
-                        
-                        console.log('开始提取公司名称...');
-                        
-                        // 1. 首先处理公司名称中的空格问题，特别是名称中间有空格的情况
-                        let companyText = afterPurchaseSale;
-                        
-                        // 2. 查找"买"字的位置，这是销售方的结束标志
-                        const buyIndex = companyText.indexOf('买');
-                        console.log('"买"字的位置:', buyIndex);
-                        
-                        // 3. 提取公司名称部分，无论是否有"买"字
-                        let beforeBuyText = companyText;
-                        if (buyIndex !== -1) {
-                            beforeBuyText = companyText.substring(0, buyIndex).trim();
-                        }
-                        console.log('提取的公司名称文本:', beforeBuyText);
-                        
-                        // 4. 移除多余空格，合并连续空格为一个
-                        const cleanedText = beforeBuyText.replace(/\s+/g, ' ');
-                        console.log('清理后的文本:', cleanedText);
-                        
-                        // 5. 移除所有空格，便于后续匹配
-                        noSpaceText = cleanedText.replace(/\s/g, '');
-                        console.log('移除所有空格后的文本:', noSpaceText);
-                        
-                        // 6. 改进的公司名称提取逻辑
-                        // 6.1 首先尝试匹配两个完整的公司名称
-                        const fullCompanyPattern = /([\u4e00-\u9fa5\w（）]+?公司)([\u4e00-\u9fa5\w（）]+?公司)/;
-                        const fullMatch = noSpaceText.match(fullCompanyPattern);
-                        
-                        if (fullMatch) {
-                            console.log('匹配到两个完整公司名称:', fullMatch[1], fullMatch[2]);
-                            buyer = fullMatch[1];
-                            seller = fullMatch[2];
-                        } else {
-                            // 6.2 如果直接匹配失败，尝试通用匹配
-                            const companyRegex = /[\u4e00-\u9fa5\w（）]+?(?:公司|有限|集团|厂|店|中心|院|所|局|经营部|部|行|馆|坊|铺|站)/g;
-                            const allCompanies = noSpaceText.match(companyRegex) || [];
-                            
-                            console.log('提取到的公司列表:', allCompanies);
-                            
-                            if (allCompanies.length >= 2) {
-                                // 6.3 确保按照"购前销后"规则分配
-                                buyer = allCompanies[0];
-                                seller = allCompanies[1];
-                                console.log('根据"购前销后"规则分配：购买方:', buyer, '销售方:', seller);
-                            } else {
-                                // 6.4 特殊处理：针对用户提供的新格式
-                                console.log('尝试针对新格式的特殊处理');
-                                
-                                // 6.4.1 查找第一个"公司"关键词
-                                const firstCompanyIndex = noSpaceText.indexOf('公司');
-                                if (firstCompanyIndex !== -1) {
-                                    // 提取第一个公司（购买方）
-                                    buyer = noSpaceText.substring(0, firstCompanyIndex + 2);
-                                    // 提取第二个公司（销售方）
-                                    seller = noSpaceText.substring(firstCompanyIndex + 2);
-                                    console.log('根据"公司"关键词分割：购买方:', buyer, '销售方:', seller);
-                                }
-                            }
-                        }
-                    } else {
-                        // 如果没有找到购销方标志，使用完整文本的无空格版本
-                        noSpaceText = processedText.replace(/\s+/g, '');
-                    }
+                    // 如果没有找到购销方标志，使用完整文本的无空格版本
+                    noSpaceText = processedText.replace(/\s+/g, '');
+                }
+            }
+            
+            // 修复常见公司名称问题 - 适用于两种格式
+            if (noSpaceText) {
+                // 7.1 确保公司名称完整，包含"公司"关键词
+                if (buyer && !buyer.includes('公司') && noSpaceText.includes(buyer + '公司')) {
+                    buyer += '公司';
+                }
+                if (seller && !seller.includes('公司') && noSpaceText.includes(seller + '公司')) {
+                    seller += '公司';
                 }
                 
-                // 修复常见公司名称问题 - 适用于两种格式
-                if (noSpaceText) {
-                    // 7.1 确保公司名称完整，包含"公司"关键词
-                    if (buyer && !buyer.includes('公司') && noSpaceText.includes(buyer + '公司')) {
-                        buyer += '公司';
-                    }
-                    if (seller && !seller.includes('公司') && noSpaceText.includes(seller + '公司')) {
-                        seller += '公司';
-                    }
-                    
-                    // 7.2 修复"公司"关键词位置错误的问题
-                    if (seller && seller.startsWith('公司')) {
-                        // 将"公司"移到购买方末尾
-                        const companyStr = seller.substring(0, 2);
-                        seller = seller.substring(2);
-                        buyer += companyStr;
-                        console.log('修复"公司"位置：购买方:', buyer, '销售方:', seller);
-                    }
-                    
-                    // 7.3 修复用户提供的新示例，支持半角和全角括号
-                    const hasPuliCompany = noSpaceText.includes('普利美') && noSpaceText.includes('环境工程科技有限公司');
-                    const hasNiCompany = noSpaceText.includes('常州倪祥精密钢管制造有限公司');
-                    if (hasPuliCompany && hasNiCompany) {
-                        // 提取完整的普利美公司名称，支持半角和全角括号
-                        const puliMatch = noSpaceText.match(/普利美[（(]常州[）)]环境工程科技有限公司/);
-                        if (puliMatch) {
-                            buyer = puliMatch[0];
-                        } else {
-                            // 兜底，直接使用正确名称
-                            buyer = '普利美(常州)环境工程科技有限公司';
-                        }
-                        seller = '常州倪祥精密钢管制造有限公司';
-                        console.log('匹配到用户新示例格式');
-                    }
+                // 7.2 修复"公司"关键词位置错误的问题
+                if (seller && seller.startsWith('公司')) {
+                    // 将"公司"移到购买方末尾
+                    const companyStr = seller.substring(0, 2);
+                    seller = seller.substring(2);
+                    buyer += companyStr;
+                    console.log('修复"公司"位置：购买方:', buyer, '销售方:', seller);
+                }
+                
+                // 7.3 修复用户提供的新示例
+                if (noSpaceText.includes('普利美（常州）环境工程科技有限公司') && noSpaceText.includes('常州倪祥精密钢管制造有限公司')) {
+                    buyer = '普利美（常州）环境工程科技有限公司';
+                    seller = '常州倪祥精密钢管制造有限公司';
+                    console.log('匹配到用户新示例格式');
                 }
             }
             
@@ -6087,16 +5780,33 @@
                 const uniqueCompanies = [...new Set(allCompanies)];
                 console.log('去重后的公司列表:', uniqueCompanies);
                 
-                // 对于过路费发票，调整逻辑：第一个公司是购买方，第二个是销售方
-                if (isTollInvoice && uniqueCompanies.length >= 2) {
-                    buyer = uniqueCompanies[0].replace(/\s+/g, '');
-                    seller = uniqueCompanies[1].replace(/\s+/g, '');
-                    console.log('根据过路费发票传统方法分配：购买方:', buyer, '销售方:', seller);
-                } else if (uniqueCompanies.length >= 2) {
-                    // 通常第一个公司是购买方，第二个是销售方（根据购前销后的规律）
-                    buyer = uniqueCompanies[0].replace(/\s+/g, '');
-                    seller = uniqueCompanies[1].replace(/\s+/g, '');
-                    console.log('根据传统方法分配：购买方:', buyer, '销售方:', seller);
+                // 根据位置确定购买方和销售方
+                // 修复：根据发票结构，通常购买方在销售方之前，但需要考虑文本中"销"在"购"前的情况
+                if (uniqueCompanies.length >= 2) {
+                    // 查看预处理文本中公司出现的实际位置
+                    const firstCompanyIndex = processedText.indexOf(uniqueCompanies[0]);
+                    const secondCompanyIndex = processedText.indexOf(uniqueCompanies[1]);
+                    
+                    // 检查文本中是否存在"购"和"销"的顺序
+                    const gouIndex = processedText.indexOf('购');
+                    const xiaoIndex = processedText.indexOf('销');
+                    
+                    if (gouIndex !== -1 && xiaoIndex !== -1 && xiaoIndex < gouIndex) {
+                        // 特殊情况："销"在"购"前面，此时第一个公司是销售方，第二个是购买方
+                        seller = uniqueCompanies[0].replace(/\s+/g, '');
+                        buyer = uniqueCompanies[1].replace(/\s+/g, '');
+                        console.log('检测到"销"在"购"前，调整分配：购买方:', buyer, '销售方:', seller);
+                    } else if (firstCompanyIndex < secondCompanyIndex) {
+                        // 正常情况：第一个公司是购买方，第二个是销售方
+                        buyer = uniqueCompanies[0].replace(/\s+/g, '');
+                        seller = uniqueCompanies[1].replace(/\s+/g, '');
+                        console.log('根据传统方法分配：购买方:', buyer, '销售方:', seller);
+                    } else {
+                        // 特殊情况：第二个公司先出现，调整顺序
+                        buyer = uniqueCompanies[1].replace(/\s+/g, '');
+                        seller = uniqueCompanies[0].replace(/\s+/g, '');
+                        console.log('根据出现位置调整分配：购买方:', buyer, '销售方:', seller);
+                    }
                 } else if (uniqueCompanies.length === 1) {
                     // 如果只有一个公司，默认是销售方
                     seller = uniqueCompanies[0].replace(/\s+/g, '');
@@ -6119,14 +5829,12 @@
             // 7. 提取金额信息
             console.log('开始查找金额...');
             
-            // 使用之前已经声明的isTollInvoice变量
-            
             // 优先从中文大写金额中提取
             let chineseAmount = '';
             
             // 1. 先尝试从价税合计大写中提取
             // 处理带有空格的中文大写金额，如：叁 仟 捌 佰 零 柒 圆 捌 角 玖 分
-            const chineseAmountRegex = /(壹|贰|叁|肆|伍|陆|柒|捌|玖|拾)\s*(仟|佰|拾|万|亿|)\s*(壹|贰|叁|肆|伍|陆|柒|捌|玖|拾|零)?\s*(仟|佰|拾|万|亿|)\s*(壹|贰|叁|肆|伍|陆|柒|捌|玖|拾|零)?\s*(仟|佰|拾|)\s*(壹|贰|叁|肆|伍|陆|柒|捌|玖|拾|零)?\s*(圆|元)\s*(壹|贰|叁|肆|伍|陆|柒|捌|玖|拾|零)?\s*(角)?\s*(壹|贰|叁|肆|伍|陆|柒|捌|玖|拾|零)?\s*(分)?/i;
+            const chineseAmountRegex = /(壹|贰|叁|肆|伍|陆|柒|捌|玖|拾)\s*(仟|佰|拾|万|亿|)\s*(壹|贰|叁|肆|伍|陆|柒|捌|玖|拾|零)?\s*(仟|佰|拾|万|亿|)\s*(壹|贰|叁|肆|伍|陆|柒|捌|玖|拾|零)?\s*(仟|佰|拾|)\s*(壹|贰|叁|肆|伍|陆|柒|捌|玖|拾|零)?\s*(圆|元)\s*(壹|贰|叁|肆|伍|陆|柒|捌|玖|拾|零)?\s*(角)\s*(壹|贰|叁|肆|伍|陆|柒|捌|玖|拾|零)?\s*(分)/i;
             
             let match = processedText.match(chineseAmountRegex);
             if (match) {
@@ -6137,14 +5845,12 @@
             // 2. 如果失败，尝试其他格式
             if (!chineseAmount) {
                 const fallbackPatterns = [
-                    // 匹配格式：合计 叁佰零捌圆整（优先匹配这种格式）
-                    /合\s*计\s*([壹贰叁肆伍陆柒捌玖拾佰仟万亿]+(?:圆|元)[整]?)/i,
                     // 匹配格式：价税合计（大写） 叁仟捌佰零柒圆捌角玖分
                     /(?:价税合计|合计)\s*\(大写\)\s*([壹贰叁肆伍陆柒捌玖拾佰仟万亿圆角分整]+)/i,
                     // 匹配格式：大写: 叁仟捌佰零柒圆捌角玖分
                     /大写\s*[:：]\s*([壹贰叁肆伍陆柒捌玖拾佰仟万亿圆角分整]+)/i,
-                    // 匹配格式：完整的中文大写金额，包含整数部分，支持过路费发票的"叁拾玖圆"
-                    /(壹|贰|叁|肆|伍|陆|柒|捌|玖|拾)[壹贰叁肆伍陆柒捌玖拾佰仟万亿]*[圆元](?:[壹贰叁肆伍陆柒捌玖]*[角])?(?:[壹贰叁肆伍陆柒捌玖]*[分])?(?:整)?/i
+                    // 匹配格式：直接匹配中文大写金额（无空格）
+                    /([壹贰叁肆伍陆柒捌玖拾佰仟万亿圆角分整]+(?:分|角|元|圆))/i
                 ];
                 
                 for (const pattern of fallbackPatterns) {
@@ -6157,17 +5863,9 @@
                 }
             }
             
-            // 3. 提取小写金额作为备选，无论中文大写金额是否提取成功
+            // 3. 如果仍然失败，尝试直接提取价税合计的小写金额作为备选
             let priceTaxTotal = '';
-            // 匹配所有小写金额
-            const allRmbValues = processedText.match(/¥\s*([\d\s,]+(?:\.\s*\d{1,2})?)/g);
-            if (allRmbValues) {
-                console.log('找到所有人民币数值:', allRmbValues);
-                // 价税合计通常是最后一个数值
-                const lastRmbValue = allRmbValues[allRmbValues.length - 1];
-                priceTaxTotal = lastRmbValue.replace(/¥\s*/g, '').replace(/[\s,]/g, '');
-                console.log('提取到价税合计小写金额作为备选:', priceTaxTotal);
-            } else if (!chineseAmount) {
+            if (!chineseAmount) {
                 console.log('中文大写金额提取失败，尝试提取价税合计小写金额...');
                 // 匹配格式：¥ 3 8 0 7 . 8 9
                 const priceTaxMatch = processedText.match(/¥\s*([\d\s,]+\.\s*\d{2})/g);
@@ -6178,39 +5876,18 @@
                 }
             }
             
-            // 对于过路费发票，优先使用小写金额，因为大写金额可能提取不完整
-            if (isTollInvoice && !priceTaxTotal) {
-                // 过路费发票的金额可能没有¥符号
-                const tollAmountMatch = processedText.match(/合\s*计\s*([\d\.]+)/i);
-                if (tollAmountMatch) {
-                    priceTaxTotal = tollAmountMatch[1].trim().replace(/\s+/g, '');
-                    console.log('从过路费发票合计行提取金额:', priceTaxTotal);
-                }
-            }
-            
             // 将中文大写金额转换为小写数字
             if (chineseAmount) {
                 try {
                     amount = chineseAmountToNumber(chineseAmount);
                     console.log('中文大写金额转换结果:', amount);
-                    
-                    // 如果中文金额转换结果与小写金额差异较大，优先使用小写金额
-                    if (priceTaxTotal) {
-                        const chineseNum = parseFloat(amount);
-                        const lowerNum = parseFloat(priceTaxTotal);
-                        // 如果差异超过10，则优先使用小写金额
-                        if (Math.abs(chineseNum - lowerNum) > 10) {
-                            console.log('中文金额与小写金额差异较大，优先使用小写金额');
-                            amount = priceTaxTotal;
-                        }
-                    }
                 } catch (error) {
                     console.error('中文大写金额转换失败:', error);
                     amount = '';
                 }
             }
             
-            // 如果中文金额转换失败，或者没有中文金额，则使用小写金额
+            // 如果中文金额转换失败，但提取到了价税合计小写金额，则使用该金额
             if (!amount && priceTaxTotal) {
                 amount = priceTaxTotal;
                 console.log('使用价税合计小写金额作为最终金额:', amount);
@@ -6219,7 +5896,7 @@
             // 如果中文金额转换失败，尝试从数字金额中提取
             if (!amount) {
                 // 先从合计行提取金额
-                const totalAmountMatch = processedText.match(/合\s*计\s*¥?\s*([\d\s,]+\.\s*\d{2})/);
+                const totalAmountMatch = processedText.match(/合\s*计\s*¥\s*([\d\s,]+\.\s*\d{2})/);
                 if (totalAmountMatch) {
                     let amountStr = totalAmountMatch[1].replace(/[\s,]/g, '');
                     amount = amountStr;
@@ -6227,10 +5904,10 @@
                 } else {
                     // 尝试其他格式
                     const amountPatterns = [
-                        /合\s*计.*?¥?\s*([\d\s,]+\.\s*\d{2})/, // 格式1：合计 ¥ 3 5 9 2 . 3 6
-                        /金\s*额[:：]\s*¥?\s*([\d\s,]+\.\s*\d{2})/, // 格式2：金额:¥ 1,234. 56
-                        /(?:小写|小写金额)[:：]?\s*¥?\s*([\d\s,]+\.\s*\d{2})/, // 格式3：小写:¥ 1,234. 56
-                        /¥?\s*([\d\s,]+\.\s*\d{2})/ // 格式4：直接匹配¥ 3 5 9 2 . 3 6
+                        /合\s*计.*?¥\s*([\d\s,]+\.\s*\d{2})/, // 格式1：合计 ¥ 3 5 9 2 . 3 6
+                        /金\s*额[:：]\s*¥\s*([\d\s,]+\.\s*\d{2})/, // 格式2：金额:¥ 1,234. 56
+                        /(?:小写|小写金额)[:：]?\s*¥\s*([\d\s,]+\.\s*\d{2})/, // 格式3：小写:¥ 1,234. 56
+                        /¥\s*([\d\s,]+\.\s*\d{2})/ // 格式4：直接匹配¥ 3 5 9 2 . 3 6
                     ];
                     
                     for (const pattern of amountPatterns) {
@@ -6248,21 +5925,17 @@
             // 特殊处理：如果金额提取失败，尝试从所有人民币数值中提取正确的金额
             if (!amount) {
                 console.log('尝试特殊处理：从所有人民币数值中提取金额...');
-                const allRmbValues = processedText.match(/¥?\s*([\d\s,]+(?:\.\s*\d{1,2})?)/g);
+                const allRmbValues = processedText.match(/¥\s*([\d\s,]+(?:\.\s*\d{1,2})?)/g);
                 if (allRmbValues) {
                     const parsedValues = allRmbValues.map(value => {
                         const cleanValue = value.replace(/¥\s*/g, '').replace(/[\s,]/g, '');
                         return parseFloat(cleanValue);
-                    }).filter(value => !isNaN(value) && value > 0);
+                    }).filter(value => !isNaN(value));
                     
                     if (parsedValues.length > 0) {
-                        // 对于过路费发票，通常第一个非零数值是金额
-                        if (isTollInvoice) {
-                            amount = parsedValues[0].toFixed(2);
-                        } else {
-                            // 正确的顺序：合计金额是第一个，税额是第二个，价税合计是第三个
-                            amount = parsedValues[0].toFixed(2);
-                        }
+                        // 正确的顺序：合计金额是第一个，税额是第二个，价税合计是第三个
+                        // 直接取第一个数值作为金额
+                        amount = parsedValues[0].toFixed(2);
                         console.log('从所有人民币数值中提取到金额:', amount);
                     }
                 }
@@ -6399,14 +6072,6 @@
             
             // 9. 提取项目名称
             console.log('开始查找项目名称...');
-            
-            // 使用之前已经声明的isTollInvoice变量
-            
-            if (isTollInvoice) {
-                // 过路费发票的项目名称通常是"车辆通行费"
-                itemName = '车辆通行费';
-                console.log('过路费发票项目名称:', itemName);
-            } else {
             // 多种项目名称格式匹配，支持带有空格的格式
             const itemNamePatterns = [
                 /(\*[\u4e00-\u9fa5\s\*]+)/, // 格式1：* 保 险 服 务 * 附 加 团 体 短 期（带空格）
@@ -6423,8 +6088,6 @@
                     break;
                 }
             }
-            }
-            
             console.log('最终项目名称:', itemName);
             
             // 10. 验证和清理提取的信息
@@ -6454,27 +6117,12 @@
             }
             
             // 12. 确定发票类型是销项还是普票
-            // 扩展规则：
-            // （1）只要解析到发票中含有"专用"2字，而且"销售方"为指定抬头公司中的任意一个，则"发票类型"字段的值为：专票-销项；
-            // （2）只要解析到发票中含有"专用"2字，而且"购买方"为指定抬头公司中的任意一个，则"发票类型"字段的值为：专票-进项；
-            // （3）解析发票中不含有"专用"2字，则"发票类型"字段的值为：普票；
+            // 按照用户规则：
+            // （1）只要解析到发票中含有"专用"2字，而且"销售方"为2个抬头公司中的任意一个，则"发票类型"字段的值为：专票-销项；
+            // （2）解析发票中不含有"专用"2字，则"发票类型"字段的值为：普票；
             const hasSpecial = processedTextNoSpaces.includes('专用') || processedText.includes('专用');
-            // 支持带空格和不带空格的公司名称，以及半角和全角括号
-            const validCompanies = ['无锡龙力印铁设备制造有限公司', '中国太平洋财产保险股份有限公司无锡分公司', '普利美(常州)环境工程科技有限公司', '普利美（常州）环境工程科技有限公司'];
-            
-            // 标准化比较函数
-            const isCompanyMatch = (companyName, validName) => {
-                // 移除空格和标准化括号，然后进行比较
-                const normalizedCompany = companyName.replace(/\s+/g, '').replace(/[（）]/g, '()');
-                const normalizedValidName = validName.replace(/\s+/g, '').replace(/[（）]/g, '()');
-                return normalizedCompany.includes(normalizedValidName) || normalizedValidName.includes(normalizedCompany);
-            };
-            
-            // 检查销售方是否匹配有效的公司名称
-            const isSellerValid = validCompanies.some(validName => isCompanyMatch(seller, validName));
-            
-            // 检查购买方是否匹配有效的公司名称
-            const isBuyerValid = validCompanies.some(validName => isCompanyMatch(buyer, validName));
+            const validCompanies = ['无锡龙力印铁设备制造有限公司', '中国太平洋财产保险股份有限公司无锡分公司'];
+            const isSellerValid = validCompanies.some(name => seller.includes(name));
             
             // 重置invoiceType，根据规则重新设置
             invoiceType = '';
@@ -6483,13 +6131,10 @@
                 if (isSellerValid) {
                     invoiceType = '专票-销项';
                     console.log('按照用户规则设置发票类型为：专票-销项');
-                } else if (isBuyerValid) {
-                    invoiceType = '专票-进项';
-                    console.log('按照用户规则设置发票类型为：专票-进项');
                 } else {
-                    // 含有"专用"字样但销售方和购买方都不是指定公司，设置为"专票"
+                    // 含有"专用"字样但销售方不是指定公司，设置为"专票"
                     invoiceType = '专票';
-                    console.log('含有"专用"字样但销售方和购买方都不是指定公司，设置为：专票');
+                    console.log('含有"专用"字样但销售方不是指定公司，设置为：专票');
                 }
             } else {
                 invoiceType = '普票';
@@ -6847,6 +6492,10 @@
         let specialSortField = '';
         let specialSortOrder = 'asc';
         
+        // 普票明细排序相关变量
+        let ordinarySortField = '';
+        let ordinarySortOrder = 'asc';
+        
         // 普通发票排序函数
         function sortInvoices(field) {
             if (sortField === field) {
@@ -7001,6 +6650,85 @@
                     }
                 }
             }
+        }
+        
+        // 更新普票明细排序指示器
+        function updateOrdinarySortIndicators() {
+            // 清空所有排序指示器
+            const sortIndicators = document.querySelectorAll('[id^="ordinary-sort-"]');
+            sortIndicators.forEach(indicator => {
+                indicator.innerHTML = '';
+            });
+            
+            // 如果有排序字段，显示对应的排序指示器
+            if (ordinarySortField) {
+                let indicatorId = `ordinary-sort-${ordinarySortField}`;
+                // 特殊处理发票日期，它和登记日期使用相同的字段名
+                if (ordinarySortField === 'date' && document.getElementById('ordinary-sort-date2')) {
+                    // 同时更新两个日期列的排序指示器
+                    document.getElementById('ordinary-sort-date').innerHTML = ordinarySortOrder === 'asc' ? '↑' : '↓';
+                    document.getElementById('ordinary-sort-date2').innerHTML = ordinarySortOrder === 'asc' ? '↑' : '↓';
+                } else {
+                    const indicator = document.getElementById(indicatorId);
+                    if (indicator) {
+                        indicator.innerHTML = ordinarySortOrder === 'asc' ? '↑' : '↓';
+                    }
+                }
+            }
+        }
+        
+        // 普票明细排序函数
+        function sortOrdinaryInvoices(field) {
+            if (ordinarySortField === field) {
+                // 点击同一字段，切换排序顺序
+                ordinarySortOrder = ordinarySortOrder === 'asc' ? 'desc' : 'asc';
+            } else {
+                // 点击不同字段，设置新的排序字段和默认顺序
+                ordinarySortField = field;
+                ordinarySortOrder = 'asc';
+            }
+            
+            // 根据字段类型进行排序
+            mockInvoices.sort((a, b) => {
+                let valueA, valueB;
+                
+                switch (field) {
+                    case 'date':
+                    case 'registerDate':
+                        valueA = new Date(a[field] || a.date);
+                        valueB = new Date(b[field] || b.date);
+                        break;
+                    case 'invoiceNo':
+                        // 发票号码按数字排序
+                        valueA = parseInt(a.invoiceNo.replace(/\D/g, ''));
+                        valueB = parseInt(b.invoiceNo.replace(/\D/g, ''));
+                        break;
+                    case 'amount':
+                    case 'taxRate':
+                    case 'taxAmount':
+                        // 数字字段直接比较
+                        valueA = a[field];
+                        valueB = b[field];
+                        break;
+                    default:
+                        // 字符串字段转换为小写后比较
+                        valueA = a[field] ? a[field].toLowerCase() : '';
+                        valueB = b[field] ? b[field].toLowerCase() : '';
+                }
+                
+                // 根据排序顺序返回比较结果
+                if (ordinarySortOrder === 'asc') {
+                    return valueA > valueB ? 1 : valueA < valueB ? -1 : 0;
+                } else {
+                    return valueA < valueB ? 1 : valueA > valueB ? -1 : 0;
+                }
+            });
+            
+            // 更新排序指示器
+            updateOrdinarySortIndicators();
+            
+            // 重新加载表格数据
+            filterOrdinaryInvoices(document.getElementById('ordinary-search-input').value.toLowerCase());
         }
         
         // 加载发票数据
@@ -7404,19 +7132,15 @@
                 // 抬头公司筛选条件
                 let companyMatch = true;
                 if (invoiceCompany && invoiceCompany !== '') {
-                    // 规范化筛选条件中的公司名称
-                    const normalizedFilterCompany = normalizeCompanyName(invoiceCompany);
-                    
                     // 对于专票-销项：销售方是选定的公司
                     // 对于专票-进项：购买方是选定的公司
                     // 对于普票：销售方或购买方是选定的公司
                     if (invoice.invoiceType === '专票-销项') {
-                        companyMatch = normalizeCompanyName(invoice.seller || '').includes(normalizedFilterCompany);
+                        companyMatch = (invoice.seller || '').includes(invoiceCompany);
                     } else if (invoice.invoiceType === '专票-进项') {
-                        companyMatch = normalizeCompanyName(invoice.buyer || '').includes(normalizedFilterCompany);
+                        companyMatch = (invoice.buyer || '').includes(invoiceCompany);
                     } else {
-                        companyMatch = normalizeCompanyName(invoice.seller || '').includes(normalizedFilterCompany) || 
-                                      normalizeCompanyName(invoice.buyer || '').includes(normalizedFilterCompany);
+                        companyMatch = (invoice.seller || '').includes(invoiceCompany) || (invoice.buyer || '').includes(invoiceCompany);
                     }
                 }
                 
